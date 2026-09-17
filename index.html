@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>幸運抽籤</title>
+	<style>
+		:root {
+			--ink: #1c2733;
+			--muted: #697683;
+			--paper: #fffdf8;
+			--line: #e9e3d8;
+			--accent: #e86f51;
+			--accent-dark: #c94f35;
+			--mint: #dcefe7;
+			--yellow: #f7d878;
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			color: var(--ink);
+			background: #f5efe5;
+			font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+		}
+
+		.page {
+			min-height: 100vh;
+			padding: 42px 24px 56px;
+			background:
+				radial-gradient(circle at 8% 12%, rgba(247, 216, 120, .32) 0 80px, transparent 81px),
+				radial-gradient(circle at 92% 82%, rgba(220, 239, 231, .8) 0 150px, transparent 151px),
+				linear-gradient(135deg, #f8f0e3 0%, #fffaf2 52%, #f0f6ef 100%);
+		}
+
+		.shell { max-width: 1080px; margin: 0 auto; }
+
+		header { display: flex; justify-content: space-between; align-items: end; margin-bottom: 28px; }
+		.eyebrow { margin: 0 0 8px; color: var(--accent-dark); font-size: .8rem; font-weight: 800; letter-spacing: .18em; }
+		h1 { margin: 0; font-size: clamp(2.4rem, 6vw, 4.8rem); line-height: .98; letter-spacing: -.06em; }
+		.subtitle { max-width: 300px; margin: 0; color: var(--muted); line-height: 1.7; text-align: right; }
+
+		.workspace { display: grid; grid-template-columns: minmax(280px, .85fr) minmax(340px, 1.15fr); gap: 18px; align-items: stretch; }
+		.panel { background: rgba(255, 253, 248, .88); border: 1px solid rgba(255, 255, 255, .8); border-radius: 18px; box-shadow: 0 18px 50px rgba(73, 57, 36, .1); }
+		.input-panel { padding: 28px; }
+		.panel-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+		h2 { margin: 0; font-size: 1.15rem; }
+		.count { color: var(--muted); font-size: .9rem; }
+		textarea { width: 100%; min-height: 270px; padding: 16px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; outline: none; color: var(--ink); background: #fff; font: inherit; line-height: 1.8; transition: border-color .2s, box-shadow .2s; }
+		textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(232, 111, 81, .12); }
+		.hint { margin: 11px 0 20px; color: var(--muted); font-size: .85rem; }
+		.actions { display: flex; gap: 10px; }
+		button { border: 0; border-radius: 10px; padding: 12px 18px; cursor: pointer; font: inherit; font-weight: 700; transition: transform .18s, background .18s, opacity .18s; }
+		button:hover:not(:disabled) { transform: translateY(-2px); }
+		button:disabled { cursor: not-allowed; opacity: .45; }
+		.primary { flex: 1; color: #fff; background: var(--accent); box-shadow: 0 8px 18px rgba(232, 111, 81, .25); }
+		.primary:hover:not(:disabled) { background: var(--accent-dark); }
+		.secondary { color: var(--ink); background: #eee8dc; }
+
+		.draw-panel { display: flex; flex-direction: column; justify-content: space-between; min-height: 440px; padding: 28px; overflow: hidden; background: var(--ink); color: #fff; position: relative; }
+		.draw-panel::after { content: ""; position: absolute; width: 260px; height: 260px; right: -90px; bottom: -110px; border-radius: 50%; background: var(--yellow); opacity: .9; }
+		.draw-panel > * { position: relative; z-index: 1; }
+		.draw-label { margin: 0; color: #b9c5cd; font-size: .9rem; letter-spacing: .12em; }
+		.result { display: grid; place-items: center; min-height: 205px; padding: 20px; text-align: center; }
+		.result-name { margin: 0; color: var(--yellow); font-size: clamp(3rem, 8vw, 6rem); font-weight: 900; line-height: 1.1; overflow-wrap: anywhere; }
+		.result-name.placeholder { color: #fff; font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 500; }
+		.draw-button { width: 100%; padding: 17px; color: var(--ink); background: var(--yellow); font-size: 1.1rem; }
+		.draw-button:hover:not(:disabled) { background: #ffe493; }
+		.status { min-height: 24px; margin: 13px 0 0; color: #b9c5cd; font-size: .9rem; text-align: center; }
+		.recent { margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.15); }
+		.recent-title { margin: 0 0 10px; color: #b9c5cd; font-size: .8rem; }
+		.history { display: flex; flex-wrap: wrap; gap: 7px; min-height: 28px; }
+		.history span { padding: 5px 10px; border-radius: 20px; color: var(--ink); background: var(--mint); font-size: .82rem; }
+		.pop { animation: pop .45s ease-out; }
+		@keyframes pop { 0% { transform: scale(.7); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+
+		@media (max-width: 720px) {
+			.page { padding: 28px 15px 35px; }
+			header { display: block; }
+			.subtitle { margin-top: 14px; text-align: left; }
+			.workspace { grid-template-columns: 1fr; }
+			.draw-panel { min-height: 400px; }
+		}
+	</style>
+</head>
+<body>
+	<main class="page">
+		<div class="shell">
+			<header>
+				<div>
+					<p class="eyebrow">RANDOM PICKER</p>
+					<h1>幸運抽籤</h1>
+				</div>
+				<p class="subtitle">把名單交給機率，<br>讓下一位幸運兒出現。</p>
+			</header>
+
+			<section class="workspace" aria-label="抽籤工具">
+				<section class="panel input-panel">
+					<div class="panel-title">
+						<h2>輸入名單</h2>
+						<span class="count" id="count">0 人</span>
+					</div>
+					<textarea id="names" placeholder="王小明&#10;李小美&#10;陳大華"></textarea>
+					<p class="hint">每行一個名字，重複的名字會自動合併。</p>
+					<div class="actions">
+						<button class="primary" id="startButton" type="button">開始抽籤</button>
+						<button class="secondary" id="clearButton" type="button">清除</button>
+					</div>
+				</section>
+
+				<section class="panel draw-panel">
+					<p class="draw-label">THE LUCKY ONE IS...</p>
+					<div class="result" aria-live="polite">
+						<p class="result-name placeholder" id="result">等待抽籤</p>
+					</div>
+					<div>
+						<button class="draw-button" id="drawButton" type="button" disabled>抽出一位</button>
+						<p class="status" id="status">先輸入名單，再開始抽籤</p>
+						<div class="recent">
+							<p class="recent-title">本輪已抽出</p>
+							<div class="history" id="history"></div>
+						</div>
+					</div>
+				</section>
+			</section>
+		</div>
+	</main>
+
+	<script>
+		const namesInput = document.querySelector('#names');
+		const count = document.querySelector('#count');
+		const result = document.querySelector('#result');
+		const status = document.querySelector('#status');
+		const history = document.querySelector('#history');
+		const startButton = document.querySelector('#startButton');
+		const drawButton = document.querySelector('#drawButton');
+		const clearButton = document.querySelector('#clearButton');
+
+		let remainingNames = [];
+		let drawnNames = [];
+
+		function parseNames() {
+			return [...new Set(namesInput.value.split(/\r?\n/).map(name => name.trim()).filter(Boolean))];
+		}
+
+		function updateCount() {
+			const names = parseNames();
+			count.textContent = `${names.length} 人`;
+			startButton.disabled = names.length === 0;
+		}
+
+		function startDrawing() {
+			remainingNames = parseNames();
+			drawnNames = [];
+			history.innerHTML = '';
+			result.textContent = '準備好了';
+			result.classList.add('placeholder');
+			status.textContent = `共有 ${remainingNames.length} 位參加者`;
+			drawButton.disabled = remainingNames.length === 0;
+		}
+
+		function drawOne() {
+			if (!remainingNames.length) return;
+			const index = Math.floor(Math.random() * remainingNames.length);
+			const [winner] = remainingNames.splice(index, 1);
+			drawnNames.push(winner);
+			result.textContent = winner;
+			result.classList.remove('placeholder');
+			result.classList.remove('pop');
+			void result.offsetWidth;
+			result.classList.add('pop');
+			const tag = document.createElement('span');
+			tag.textContent = winner;
+			history.prepend(tag);
+			status.textContent = remainingNames.length ? `還剩 ${remainingNames.length} 位參加者` : '名單已全部抽完';
+			drawButton.disabled = remainingNames.length === 0;
+		}
+
+		namesInput.addEventListener('input', updateCount);
+		startButton.addEventListener('click', startDrawing);
+		drawButton.addEventListener('click', drawOne);
+		clearButton.addEventListener('click', () => {
+			namesInput.value = '';
+			remainingNames = [];
+			drawnNames = [];
+			result.textContent = '等待抽籤';
+			result.classList.add('placeholder');
+			history.innerHTML = '';
+			status.textContent = '先輸入名單，再開始抽籤';
+			drawButton.disabled = true;
+			updateCount();
+			namesInput.focus();
+		});
+
+		updateCount();
+	</script>
+</body>
+</html>
